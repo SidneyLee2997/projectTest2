@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}函数演示平台{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">函数演示平台</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">首页</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            函数列表
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/function/线性函数">线性函数</a></li>
+                            <li><a class="dropdown-item" href="/function/二次函数">二次函数</a></li>
+                            <li><a class="dropdown-item" href="/function/指数函数">指数函数</a></li>
+                            <li><a class="dropdown-item" href="/function/对数函数">对数函数</a></li>
+                            <li><a class="dropdown-item" href="/function/三角函数">三角函数</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/function/余弦函数">余弦函数</a></li>
+                            <li><a class="dropdown-item" href="/function/正切函数">正切函数</a></li>
+                            <li><a class="dropdown-item" href="/function/绝对值函数">绝对值函数</a></li>
+                            <li><a class="dropdown-item" href="/function/幂函数">幂函数</a></li>
+                            <li><a class="dropdown-item" href="/function/双曲函数">双曲函数</a></li>
+                            <li><a class="dropdown-item" href="/function/平方根函数">平方根函数</a></li>
+                            <li><a class="dropdown-item" href="/function/倒数函数">倒数函数</a></li>
+                            <li><a class="dropdown-item" href="/function/高斯函数">高斯函数</a></li>
+                            <li><a class="dropdown-item" href="/function/多项式函数">多项式函数</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/compare">函数对比</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2023 函数演示平台 | 为教学而设计</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 函数演示平台{% endblock %}
+
+{% block content %}
+<div class="jumbotron bg-light p-5 rounded">
+    <h1 class="display-4">欢迎来到函数演示平台</h1>
+    <p class="lead">这个平台为数学教学而设计，帮助学生直观理解各种函数的特性和行为。</p>
+    <hr class="my-4">
+    <p>选择下面的函数类型开始探索，或使用导航菜单。</p>
+    <div class="mt-4">
+        <a href="/compare" class="btn btn-success btn-lg">
+            <i class="fas fa-chart-line"></i> 函数对比工具
+        </a>
+    </div>
+</div>
+
+{% for category, category_functions in categorized_functions.items() %}
+<div class="mt-5">
+    <h2 class="mb-4">{{ category }}</h2>
+    <div class="row">
+        {% for name, info in category_functions.items() %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title">{{ name }}</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">{{ info.formula }}</h6>
+                    <p class="card-text">{{ info.description }}</p>
+                </div>
+                <div class="card-footer">
+                    <a href="/function/{{ name }}" class="btn btn-primary">查看详情</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %} 

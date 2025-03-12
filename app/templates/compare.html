@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}函数对比 - 函数演示平台{% endblock %}
+
+{% block extra_css %}
+<style>
+    #plot-container {
+        margin-top: 20px;
+        text-align: center;
+    }
+    #compare-plot {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .function-select {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    .parameter-control {
+        margin-bottom: 10px;
+    }
+    .export-btn {
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item active">函数对比</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>函数对比工具</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">在此页面中，您可以选择多个函数并调整它们的参数，以便在同一个图表上进行对比。这对于理解不同函数之间的关系非常有用。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>函数选择</h3>
+            </div>
+            <div class="card-body">
+                <div id="functions-container">
+                    <div class="function-select" id="function-select-0">
+                        <div class="form-group mb-3">
+                            <label for="function-type-0">函数类型：</label>
+                            <select class="form-select" id="function-type-0" onchange="updateFunctionParams(0)">
+                                <option value="">-- 选择函数 --</option>
+                                {% for name in functions.keys() %}
+                                <option value="{{ name }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="params-container-0">
+                            <!-- 参数控件将在这里动态生成 -->
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary mt-3" id="add-function">添加函数</button>
+                <button type="button" class="btn btn-primary mt-3" id="generate-plot">生成对比图</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>对比图像</h3>
+            </div>
+            <div class="card-body">
+                <div id="plot-container">
+                    <img id="compare-plot" src="" alt="函数对比图像">
+                </div>
+                <div class="text-center export-btn">
+                    <button class="btn btn-success" id="export-button" disabled>导出图像</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 存储函数信息
+    const functionsData = {
+        {% for name, info in functions.items() %}
+        "{{ name }}": {
+            params: {{ info.params|tojson }},
+            formula: "{{ info.formula }}",
+            description: "{{ info.description }}"
+        },
+        {% endfor %}
+    };
+    
+    let functionCount = 1;
+    
+    // 更新参数控件
+    function updateFunctionParams(index) {
+        const functionType = document.getElementById(`function-type-${index}`).value;
+        const paramsContainer = document.getElementById(`params-container-${index}`);
+        
+        if (!functionType) {
+            paramsContainer.innerHTML = '';
+            return;
+        }
+        
+        const functionInfo = functionsData[functionType];
+        let html = '<div class="params-group">';
+        
+        for (const [paramName, paramValue] of Object.entries(functionInfo.params)) {
+            html += `
+                <div class="parameter-control">
+                    <label for="param-${index}-${paramName}" class="form-label">${paramName}：<span id="param-value-${index}-${paramName}">${paramValue}</span></label>
+                    <input type="range" class="form-range" id="param-${index}-${paramName}" 
+                           min="-10" max="10" step="0.1" value="${paramValue}"
+                           oninput="updateParamValue(${index}, '${paramName}', this.value)">
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        paramsContainer.innerHTML = html;
+    }
+    
+    // 更新参数值显示
+    function updateParamValue(index, paramName, value) {
+        document.getElementById(`param-value-${index}-${paramName}`).textContent = parseFloat(value).toFixed(1);
+    }
+    
+    // 添加新函数选择器
+    function addFunctionSelector() {
+        const container = document.getElementById('functions-container');
+        const newIndex = functionCount;
+        
+        const newFunctionDiv = document.createElement('div');
+        newFunctionDiv.className = 'function-select';
+        newFunctionDiv.id = `function-select-${newIndex}`;
+        
+        let html = `
+            <div class="d-flex justify-content-between mb-2">
+                <h5>函数 #${newIndex + 1}</h5>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeFunction(${newIndex})">删除</button>
+            </div>
+            <div class="form-group mb-3">
+                <label for="function-type-${newIndex}">函数类型：</label>
+                <select class="form-select" id="function-type-${newIndex}" onchange="updateFunctionParams(${newIndex})">
+                    <option value="">-- 选择函数 --</option>
+                    {% for name in functions.keys() %}
+                    <option value="{{ name }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="params-container-${newIndex}">
+                <!-- 参数控件将在这里动态生成 -->
+            </div>
+        `;
+        
+        newFunctionDiv.innerHTML = html;
+        container.appendChild(newFunctionDiv);
+        
+        functionCount++;
+    }
+    
+    // 删除函数选择器
+    function removeFunction(index) {
+        const element = document.getElementById(`function-select-${index}`);
+        if (element) {
+            element.remove();
+        }
+    }
+    
+    // 获取所有选定的函数及其参数
+    function getSelectedFunctions() {
+        const functions = [];
+        
+        for (let i = 0; i < functionCount; i++) {
+            const functionSelect = document.getElementById(`function-type-${i}`);
+            if (functionSelect && functionSelect.value) {
+                const functionName = functionSelect.value;
+                const params = {};
+                
+                const functionInfo = functionsData[functionName];
+                for (const paramName of Object.keys(functionInfo.params)) {
+                    const paramInput = document.getElementById(`param-${i}-${paramName}`);
+                    if (paramInput) {
+                        params[paramName] = parseFloat(paramInput.value);
+                    }
+                }
+                
+                functions.push({
+                    name: functionName,
+                    params: params
+                });
+            }
+        }
+        
+        return functions;
+    }
+    
+    // 生成对比图
+    function generateComparePlot() {
+        const selectedFunctions = getSelectedFunctions();
+        
+        if (selectedFunctions.length === 0) {
+            alert('请至少选择一个函数');
+            return;
+        }
+        
+        fetch('/compare_plot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                functions: selectedFunctions
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('错误: ' + data.error);
+            } else {
+                const plotImg = document.getElementById('compare-plot');
+                plotImg.src = 'data:image/png;base64,' + data.image;
+                document.getElementById('export-button').disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('错误:', error);
+            alert('生成图像时发生错误');
+        });
+    }
+    
+    // 导出图像
+    function exportImage() {
+        const imgElement = document.getElementById('compare-plot');
+        const imgData = imgElement.src;
+        
+        fetch('/export_image', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_data: imgData,
+                format: 'png'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('错误: ' + data.error);
+            } else {
+                // 创建下载链接
+                const downloadLink = document.createElement('a');
+                downloadLink.href = data.file_url;
+                downloadLink.download = data.filename;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            }
+        })
+        .catch(error => {
+            console.error('错误:', error);
+            alert('导出图像时发生错误');
+        });
+    }
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 更新第一个函数选择器的参数
+        document.getElementById('function-type-0').addEventListener('change', function() {
+            updateFunctionParams(0);
+        });
+        
+        // 添加函数按钮
+        document.getElementById('add-function').addEventListener('click', addFunctionSelector);
+        
+        // 生成图表按钮
+        document.getElementById('generate-plot').addEventListener('click', generateComparePlot);
+        
+        // 导出图像按钮
+        document.getElementById('export-button').addEventListener('click', exportImage);
+    });
+</script>
+{% endblock %} 

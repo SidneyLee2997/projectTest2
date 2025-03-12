@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}{{ name }} - 函数演示平台{% endblock %}
+
+{% block extra_css %}
+<style>
+    .parameter-control {
+        margin-bottom: 15px;
+    }
+    #plot-container {
+        margin-top: 20px;
+        text-align: center;
+    }
+    #function-plot {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .formula {
+        font-size: 1.5rem;
+        font-family: 'Times New Roman', Times, serif;
+        margin: 20px 0;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item active">{{ name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>{{ name }}</h2>
+            </div>
+            <div class="card-body">
+                <div class="formula">{{ info.formula }}</div>
+                <p class="lead">{{ info.description }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>参数控制</h3>
+            </div>
+            <div class="card-body">
+                <form id="parameter-form">
+                    {% for param_name, param_value in info.params.items() %}
+                    <div class="parameter-control">
+                        <label for="param-{{ param_name }}" class="form-label">{{ param_name }}：<span id="param-value-{{ param_name }}">{{ param_value }}</span></label>
+                        <input type="range" class="form-range" id="param-{{ param_name }}" name="{{ param_name }}" 
+                               min="-10" max="10" step="0.1" value="{{ param_value }}"
+                               oninput="updateParamValue('{{ param_name }}', this.value)">
+                    </div>
+                    {% endfor %}
+                    <button type="button" class="btn btn-primary" id="update-plot">更新图形</button>
+                    <button type="button" class="btn btn-secondary" id="reset-params">重置参数</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>函数图像</h3>
+            </div>
+            <div class="card-body">
+                <div id="plot-container">
+                    <img id="function-plot" src="" alt="{{ name }}图像">
+                </div>
+                <div class="text-center mt-3">
+                    <button class="btn btn-success" id="export-button" disabled>导出图像</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 存储初始参数值
+    const initialParams = {};
+    {% for param_name, param_value in info.params.items() %}
+    initialParams['{{ param_name }}'] = {{ param_value }};
+    {% endfor %}
+    
+    // 更新参数值显示
+    function updateParamValue(paramName, value) {
+        document.getElementById('param-value-' + paramName).textContent = parseFloat(value).toFixed(1);
+    }
+    
+    // 获取当前参数值
+    function getCurrentParams() {
+        const params = {};
+        {% for param_name in info.params.keys() %}
+        params['{{ param_name }}'] = parseFloat(document.getElementById('param-{{ param_name }}').value);
+        {% endfor %}
+        return params;
+    }
+    
+    // 重置参数值
+    function resetParams() {
+        for (const [paramName, value] of Object.entries(initialParams)) {
+            const inputElement = document.getElementById('param-' + paramName);
+            inputElement.value = value;
+            updateParamValue(paramName, value);
+        }
+        generatePlot();
+    }
+    
+    // 生成函数图像
+    function generatePlot() {
+        const params = getCurrentParams();
+        
+        fetch('/generate_plot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                function: '{{ name }}',
+                params: params
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('错误: ' + data.error);
+            } else {
+                document.getElementById('function-plot').src = 'data:image/png;base64,' + data.image;
+                document.getElementById('export-button').disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('错误:', error);
+            alert('生成图像时发生错误');
+        });
+    }
+    
+    // 导出图像
+    function exportImage() {
+        const imgElement = document.getElementById('function-plot');
+        const imgData = imgElement.src;
+        
+        fetch('/export_image', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_data: imgData,
+                format: 'png'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('错误: ' + data.error);
+            } else {
+                // 创建下载链接
+                const downloadLink = document.createElement('a');
+                downloadLink.href = data.file_url;
+                downloadLink.download = data.filename;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            }
+        })
+        .catch(error => {
+            console.error('错误:', error);
+            alert('导出图像时发生错误');
+        });
+    }
+    
+    // 页面加载完成后生成初始图像
+    document.addEventListener('DOMContentLoaded', function() {
+        generatePlot();
+        
+        // 添加按钮事件监听器
+        document.getElementById('update-plot').addEventListener('click', generatePlot);
+        document.getElementById('reset-params').addEventListener('click', resetParams);
+        document.getElementById('export-button').addEventListener('click', exportImage);
+    });
+</script>
+{% endblock %} 
